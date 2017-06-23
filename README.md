@@ -1,1 +1,1 @@
-# MailRu Machine Learning Contetst
+# MailRu Machine Learning Contest
