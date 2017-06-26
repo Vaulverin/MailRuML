@@ -105,7 +105,7 @@ N_test,  _ = X_test.shape
 
 
 
-
+'''
 #--------------- !!!!! kNN – метод ближайших соседей !!!!!
 
 from sklearn.neighbors import KNeighborsClassifier
@@ -149,6 +149,7 @@ err_train = np.mean(y_train != svc.predict(X_train))
 err_test  = np.mean(y_test  != svc.predict(X_test))
 #print (err_train, err_test)
 #--------------- Вначале попробуем найти лучшие значения параметров для радиального ядра.
+from sklearn.grid_search import GridSearchCV
 C_array = np.logspace(-3, 3, num=7)
 gamma_array = np.logspace(-5, 2, num=8)
 svc = SVC(kernel='rbf')
@@ -173,12 +174,13 @@ print ('SVC radial - ', err_train, err_test)
 
 #--------------- !!!!! Линейное ядро !!!!!
 #--------------- Находим лучшие значения параметров для линейного ядра.
+from sklearn.grid_search import GridSearchCV
 C_array = np.logspace(-3, 3, num=7)
 svc = SVC(kernel='linear')
 grid = GridSearchCV(svc, param_grid={'C': C_array})
 grid.fit(X_train, y_train)
-print ('CV error    = ', 1 - grid.best_score_)
-print ('best C      = ', grid.best_estimator_.C)
+#print ('CV error    = ', 1 - grid.best_score_)
+#print ('best C      = ', grid.best_estimator_.C)
 #--------------- Проверяем результат
 svc = SVC(kernel='linear', C=grid.best_estimator_.C)
 svc.fit(X_train, y_train)
@@ -189,4 +191,67 @@ print ('SVC linear - ', err_train, err_test)
 
 
 #--------------- !!!!! Полиномиальное ядро !!!!!
+#--------------- Находим лучшие значения параметров для полиномиального ядра.
+from sklearn.grid_search import GridSearchCV
+from sklearn.svm import SVC
+C_array = np.logspace(-5, 2, num=8)
+gamma_array = np.logspace(-5, 2, num=8)
+degree_array = [2, 3, 4]
+svc = SVC(kernel='poly')
+grid = GridSearchCV(svc, param_grid={'C': C_array, 'gamma': gamma_array, 'degree': degree_array})
+grid.fit(X_train, y_train)
+#print ('CV error    = ', 1 - grid.best_score_)
+#print ('best C      = ', grid.best_estimator_.C)
+#print ('best gamma  = ', grid.best_estimator_.gamma)
+#print ('best degree = ', grid.best_estimator_.degree)
 
+svc = SVC(kernel='poly', C=grid.best_estimator_.C, 
+          gamma=grid.best_estimator_.gamma, degree=grid.best_estimator_.degree)
+svc.fit(X_train, y_train)
+
+err_train = np.mean(y_train != svc.predict(X_train))
+err_test  = np.mean(y_test  != svc.predict(X_test))
+print (err_train, err_test)
+'''
+
+
+
+#--------------- !!!!! Random Forest – случайный лес !!!!!
+from sklearn import ensemble
+rf = ensemble.RandomForestClassifier(n_estimators=100, random_state=11)
+rf.fit(X_train, y_train)
+
+err_train = np.mean(y_train != rf.predict(X_train))
+err_test  = np.mean(y_test  != rf.predict(X_test))
+print (err_train, err_test)
+
+importances = rf.feature_importances_
+indices = np.argsort(importances)[::-1]
+
+
+#--------------- !!!!! Выделяем самые коррелирующие признаки !!!!!
+print("Feature importances:")
+for f, idx in enumerate(indices):
+    print("{:2d}. feature '{:5s}' ({:.4f})".format(f + 1, feature_names[idx], importances[idx]))
+best_features = indices[:8]
+best_features_names = feature_names[best_features]
+print(best_features_names)
+
+
+
+
+#--------------- !!!!! Градиентный бустинг !!!!!
+from sklearn import ensemble
+gbt = ensemble.GradientBoostingClassifier(n_estimators=100, random_state=11)
+gbt.fit(X_train, y_train)
+
+err_train = np.mean(y_train != gbt.predict(X_train))
+err_test = np.mean(y_test != gbt.predict(X_test))
+print (err_train, err_test)
+
+gbt = ensemble.GradientBoostingClassifier(n_estimators=100, random_state=11)
+gbt.fit(X_train[best_features_names], y_train)
+
+err_train = np.mean(y_train != gbt.predict(X_train[best_features_names]))
+err_test = np.mean(y_test != gbt.predict(X_test[best_features_names]))
+print (err_train, err_test)
